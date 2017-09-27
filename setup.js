@@ -20,6 +20,21 @@ var SERVER_CERT=__dirname+path.sep+'tls'+path.sep+'server.pem';
 var SERVER_KEY=__dirname+path.sep+'tls'+path.sep+'server-key.pem';
 var PASSPHRASE='0mneediaRulez!';
 
+var _service=[
+	'[Service]',
+	'ExecStart=/usr/bin/nodejs /opt/worker/bin/worker.js',
+	'Restart=always',
+	'StandardOutput=syslog',
+	'StandardError=syslog',
+	'SyslogIdentifier=OAWORKER',
+	'User=root',
+	'Group=root',
+	'Environment=NODE_ENV=production',
+	' ',
+	'[Install]',
+	'WantedBy=multi-user.target'	
+];
+
 function error(err) {
 	console.log('\n'+emoji.get('heavy_exclamation_mark')+" "+err.red+"\n");
 	process.exit();	
@@ -208,6 +223,15 @@ function makeTLS(A) {
 		delete info.cert;
 		delete info.key;
 		fs.writeFileSync('/root/.omneedia',JSON.stringify(info));
+		if (!fs.existsSync(__dirname+path.sep+'..'+path.sep+'worker'+path.sep+'config')) fs.mkdirSync(__dirname+path.sep+'..'+path.sep+'worker'+path.sep+'config');
+		var conf={
+			cluster: response.cluster,
+			port: 9090
+		};	fs.writeFileSync(__dirname+path.sep+'..'+path.sep+'worker'+path.sep+'config'+path.sep+'worker.json',JSON.stringify(conf,null,4));
+		// install service
+		fs.writeFileSync('/etc/systemd/system/multi-user.target.wants/oaworker.service',_service.join('\n'));
+		shelljs.exec('systemctl daemon-reload',{silent:false});
+		shelljs.exec('service oaworker restart',{silent:false});
 		console.log(' Your server is up and running!'.green);
 		console.log(' ');
 	});	
@@ -239,7 +263,7 @@ figlet('omneedia.setup', function(err, data) {
 	console.log(err);
 	console.log(data.cyan);
 	console.log(' ');
-	console.log('This script will guide you through the process of creating and registering an omneedia worker.'.green);
+	console.log('This script will guide you through the process of creating and registering an omneedia host.'.green);
 	console.log(' ');
 	inquirer.prompt(questions).then(Answer);
 });
