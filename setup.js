@@ -173,18 +173,22 @@ function makeTLS(A) {
 	var ca=fs.readFileSync('tls/'+path.basename(CA_CERT),'utf-8');
 	var cert=fs.readFileSync('tls/'+path.basename(CLIENT_CERT),'utf-8');
 	var key=fs.readFileSync('tls/'+path.basename(CLIENT_KEY),'utf-8');
-	
+	var info={
+		
+	};
+	var info={
+		hid: require('shortid').generate(),
+		pid: PID,
+		ca: ca.split('\n').join('|'),
+		cert: cert.split('\n').join('|'),
+		key: key.split('\n').join('|'),
+		ip: A.IP,
+		host: A.DNS,
+		label: A.LABEL
+	};
 	request({
 		url: A.URL+'api/register_host', 
-		form: {
-			pid: PID,
-			ca: ca.split('\n').join('|'),
-			cert: cert.split('\n').join('|'),
-			key: key.split('\n').join('|'),
-			ip: A.IP,
-			host: A.DNS,
-			label: A.LABEL
-		},
+		form: info,
 		method: "post", 
 		encoding: null
 	}, function (err, resp, body) {
@@ -198,7 +202,12 @@ function makeTLS(A) {
 			console.log(JSON.stringify(response,null,4).yellow);
 			console.log(' ');
 			return;
-		}
+		};
+		delete info.pid;
+		delete info.ca;
+		delete info.cert;
+		delete info.key;
+		fs.writeFileSync('/root/.omneedia',JSON.stringify(info));
 		console.log(' Your server is up and running!'.green);
 		console.log(' ');
 	});	
@@ -230,7 +239,7 @@ figlet('omneedia.setup', function(err, data) {
 	console.log(err);
 	console.log(data.cyan);
 	console.log(' ');
-	console.log('This script will guide you through the process of creating and registering an omneedia host.'.green);
+	console.log('This script will guide you through the process of creating and registering an omneedia worker.'.green);
 	console.log(' ');
 	inquirer.prompt(questions).then(Answer);
 });
