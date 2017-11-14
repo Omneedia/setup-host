@@ -20,9 +20,11 @@ var SERVER_CERT = __dirname + path.sep + 'tls' + path.sep + 'server.pem';
 var SERVER_KEY = __dirname + path.sep + 'tls' + path.sep + 'server-key.pem';
 var PASSPHRASE = '0mneediaRulez!';
 
+var cleandir=path.normalize(__dirname + path.sep +'..'+path.sep+'Hypervisor');
+
 var _service = [
     '[Service]',
-    'ExecStart=/usr/bin/nodejs /opt/hypervisor/bin/hypervisor.js',
+    'ExecStart=/usr/bin/nodejs '+cleandir+'/bin/hypervisor.js',
     'Restart=always',
     'StandardOutput=syslog',
     'StandardError=syslog',
