@@ -43,7 +43,7 @@ function error(err) {
 };
 
 function getIPAddress() {
-    if (fs.existsSync(__dirname + '../Hypervisor/.ip')) return fs.readFileSync(__dirname + '/../Hypervisor/.ip', 'utf-8');
+    if (fs.existsSync(__dirname + '/../Hypervisor/.ip')) return fs.readFileSync(__dirname + '/../Hypervisor/.ip', 'utf-8').split('\n')[0];
     var interfaces = require('os').networkInterfaces();
     for (var devName in interfaces) {
         var iface = interfaces[devName];
