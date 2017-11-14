@@ -20,11 +20,11 @@ var SERVER_CERT = __dirname + path.sep + 'tls' + path.sep + 'server.pem';
 var SERVER_KEY = __dirname + path.sep + 'tls' + path.sep + 'server-key.pem';
 var PASSPHRASE = '0mneediaRulez!';
 
-var cleandir=path.normalize(__dirname + path.sep +'..'+path.sep+'Hypervisor');
+var cleandir = path.normalize(__dirname + path.sep + '..' + path.sep + 'Hypervisor');
 
 var _service = [
     '[Service]',
-    'ExecStart=/usr/bin/nodejs '+cleandir+'/bin/hypervisor.js',
+    'ExecStart=/usr/bin/nodejs ' + cleandir + '/bin/hypervisor.js',
     'Restart=always',
     'StandardOutput=syslog',
     'StandardError=syslog',
@@ -43,6 +43,7 @@ function error(err) {
 };
 
 function getIPAddress() {
+    if (fs.existsSync(__dirname + '../.ip')) return fs.readFileSync(__dirname + '../.ip', 'utf-8');
     var interfaces = require('os').networkInterfaces();
     for (var devName in interfaces) {
         var iface = interfaces[devName];
@@ -200,8 +201,7 @@ function makeTLS(A) {
         key: key.split('\n').join('|'),
         ip: A.IP,
         host: A.DNS,
-        label: A.LABEL,
-        cluster: A.URL
+        label: A.LABEL
     };
     request({
         url: A.URL + 'api/register_hypervisor',
@@ -225,7 +225,7 @@ function makeTLS(A) {
         delete info.cert;
         delete info.key;
         fs.writeFileSync('/root/.omneedia', JSON.stringify(info));
-        if (!fs.existsSync(__dirname + path.sep + '..' + path.sep + 'hypervisor' + path.sep + 'config')) fs.mkdirSync(__dirname + path.sep + '..' + path.sep + 'hypervisor' + path.sep + 'config');
+        if (!fs.existsSync(__dirname + path.sep + '..' + path.sep + 'worker' + path.sep + 'config')) fs.mkdirSync(__dirname + path.sep + '..' + path.sep + 'worker' + path.sep + 'config');
         var conf = {
             cluster: response.cluster
         };
