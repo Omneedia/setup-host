@@ -201,7 +201,7 @@ function makeTLS(A) {
         ip: A.IP,
         host: A.DNS,
         label: A.LABEL,
-        cluster: response.cluster
+        cluster: A.URL
     };
     request({
         url: A.URL + 'api/register_hypervisor',
