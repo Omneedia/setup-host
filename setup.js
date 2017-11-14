@@ -201,7 +201,8 @@ function makeTLS(A) {
         key: key.split('\n').join('|'),
         ip: A.IP,
         host: A.DNS,
-        label: A.LABEL
+        label: A.LABEL,
+        cluster: A.URL
     };
     request({
         url: A.URL + 'api/register_hypervisor',
@@ -225,11 +226,6 @@ function makeTLS(A) {
         delete info.cert;
         delete info.key;
         fs.writeFileSync('/root/.omneedia', JSON.stringify(info));
-        if (!fs.existsSync(__dirname + path.sep + '..' + path.sep + 'worker' + path.sep + 'config')) fs.mkdirSync(__dirname + path.sep + '..' + path.sep + 'worker' + path.sep + 'config');
-        var conf = {
-            cluster: response.cluster
-        };
-        fs.writeFileSync(__dirname + path.sep + '..' + path.sep + 'hypervisor' + path.sep + 'config' + path.sep + 'hypervisor.json', JSON.stringify(conf, null, 4));
         // install service
         fs.writeFileSync('/etc/systemd/system/multi-user.target.wants/oahypervisor.service', _service.join('\n'));
         shelljs.exec('systemctl daemon-reload', { silent: false });
