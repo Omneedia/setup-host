@@ -225,7 +225,7 @@ function makeTLS(A) {
         delete info.ca;
         delete info.cert;
         delete info.key;
-        fs.writeFileSync('/root/.omneedia', JSON.stringify(info));
+        fs.writeFileSync(cleandir+'/.omneedia', JSON.stringify(info));
         // install service
         fs.writeFileSync('/etc/systemd/system/multi-user.target.wants/oahypervisor.service', _service.join('\n'));
         shelljs.exec('systemctl daemon-reload', { silent: false });
