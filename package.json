@@ -8,7 +8,7 @@
     "figlet": "^1.2.0",
     "inquirer": "^3.3.0",
     "node-emoji": "^1.8.1",
-    "request": "^2.82.0",
+    "request": "^2.85.0",
     "shelljs": "^0.7.8",
     "shortid": "^2.2.8"
   },
