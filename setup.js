@@ -299,7 +299,7 @@ function Answer(A) {
 
 
 //figlet('omneedia.setup', function (err, data) {
-console.log(data.cyan);
+//console.log(data.cyan);
 console.log(' ');
 console.log('This script will guide you through the process of creating and registering an omneedia host.'.green);
 console.log(' ');
