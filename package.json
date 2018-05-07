@@ -10,6 +10,7 @@
     "node-emoji": "^1.8.1",
     "request": "^2.85.0",
     "shelljs": "^0.7.8",
+    "service-systemd": "",
     "shortid": "^2.2.8"
   },
   "devDependencies": {},

@@ -20,22 +20,38 @@ var SERVER_CERT = __dirname + path.sep + 'tls' + path.sep + 'server.pem';
 var SERVER_KEY = __dirname + path.sep + 'tls' + path.sep + 'server-key.pem';
 var PASSPHRASE = '0mneediaRulez!';
 
-var cleandir = path.normalize(__dirname + path.sep + '..' + path.sep + 'Hypervisor');
+var cleandir = path.normalize(__dirname + path.sep + '..' + path.sep + 'Worker');
 
-var _service = [
-    '[Service]',
-    'ExecStart=/usr/bin/nodejs ' + cleandir + '/bin/hypervisor.js',
-    'Restart=always',
-    'StandardOutput=syslog',
-    'StandardError=syslog',
-    'SyslogIdentifier=OAHYPERVISOR',
-    'User=root',
-    'Group=root',
-    'Environment=NODE_ENV=production',
-    ' ',
-    '[Install]',
-    'WantedBy=multi-user.target'
-];
+function install_service(cb) {
+    const service = require('service-systemd');
+    var path = require('path').normalize(__dirname + '/../Worker/');
+    if (!fs.existsSync('/var/log/omneedia')) fs.mkdirSync('/var/log/omneedia');
+    var svc = {
+        "name": "oa-worker",
+        "description": "omneedia Worker",
+        "cwd": path + "/bin",
+        "app": "worker.js",
+        "engine": "node",
+        "engine.bin": "/usr/bin/node",
+        "logrotate": true,
+        "user": "root",
+        "group": "root",
+        "pid": "/var/run/oa-worker.pid",
+        "log": "/var/log/omneedia/oa-worker.log",
+        "error": "/var/log/omneedia/oa-worker.error",
+        "env": {
+            "NODE_ENV": "production"
+        }
+    };
+    service.add(svc)
+        .then(() => {
+            console.log('   - service oa-worker installed');
+            cb();
+        })
+        .catch((err) => {
+            console.error('something wrong', err.toString())
+        })
+};
 
 function error(err) {
     console.log('\n' + emoji.get('heavy_exclamation_mark') + " " + err.red + "\n");
@@ -43,7 +59,7 @@ function error(err) {
 };
 
 function getIPAddress() {
-    if (fs.existsSync(__dirname + '/../Hypervisor/.ip')) return fs.readFileSync(__dirname + '/../Hypervisor/.ip', 'utf-8').split('\n')[0];
+    //    if (fs.existsSync(__dirname + '/../Hypervisor/.ip')) return fs.readFileSync(__dirname + '/../Hypervisor/.ip', 'utf-8').split('\n')[0];
     var interfaces = require('os').networkInterfaces();
     for (var devName in interfaces) {
         var iface = interfaces[devName];
@@ -74,8 +90,8 @@ var daemon = {
 var questions = [{
         type: 'input',
         name: 'URL',
-        message: 'Cluster URL',
-        default: 'https://cluster.omneedia.com/'
+        message: 'Manager URL',
+        default: 'https://manager.omneedia.com/'
     },
     {
         type: 'input',
@@ -118,38 +134,56 @@ function makeTLS(A) {
 
     var cmd = 'openssl genrsa -aes256 -passout pass:$PASSPHRASE -out $CA_KEY 2048';
     cmd = cmd.replace('$PASSPHRASE', PASSPHRASE).replace('$CA_KEY', CA_KEY);
-    shelljs.exec(cmd, { silent: true });
+    shelljs.exec(cmd, {
+        silent: true
+    });
 
     var cmd = 'openssl req -new -x509 -days 365 -key $CA_KEY -sha256 -passin pass:$PASSPHRASE -subj "/C=FR/ST=MyState/O=MyOrg" -out $CA_CERT';
     cmd = cmd.replace('$CA_KEY', CA_KEY).replace('$PASSPHRASE', PASSPHRASE).replace('$CA_CERT', CA_CERT);
-    shelljs.exec(cmd, { silent: true });
+    shelljs.exec(cmd, {
+        silent: true
+    });
 
     var cmd = 'openssl genrsa -out $SERVER_KEY 2048'.replace('$SERVER_KEY', SERVER_KEY);
-    shelljs.exec(cmd, { silent: true });
+    shelljs.exec(cmd, {
+        silent: true
+    });
     var cmd = 'openssl req -subj "/CN=' + A.DNS + '" -new -key $SERVER_KEY -out server.csr 2>/dev/null';
     cmd = cmd.replace('$SERVER_KEY', SERVER_KEY);
-    shelljs.exec(cmd, { silent: true });
+    shelljs.exec(cmd, {
+        silent: true
+    });
     var cmd = 'openssl req -subj "/CN=' + A.DNS + '" -new -key $SERVER_KEY -out server.csr 2>/dev/null';
     cmd = cmd.replace('$SERVER_KEY', SERVER_KEY);
-    shelljs.exec(cmd, { silent: true });
+    shelljs.exec(cmd, {
+        silent: true
+    });
     fs.writeFileSync('extfile.cnf', 'subjectAltName = IP:' + A.IP);
     var cmd = 'openssl x509 -passin pass:$PASSPHRASE -req -days 365 -in server.csr -CA $CA_CERT -CAkey $CA_KEY -CAcreateserial -out $SERVER_CERT -extfile extfile.cnf';
     cmd = cmd.replace('$PASSPHRASE', PASSPHRASE).replace('$CA_CERT', CA_CERT).replace('$CA_KEY', CA_KEY).replace('$SERVER_CERT', SERVER_CERT);
-    shelljs.exec(cmd, { silent: true });
+    shelljs.exec(cmd, {
+        silent: true
+    });
 
     console.log('						' + emoji.get('heavy_check_mark').green + ' done.');
     console.log(' ');
     console.log(emoji.get('key') + ' Generating client keys ');
 
     var cmd = 'openssl genrsa -out $CLIENT_KEY 2048'.replace('$CLIENT_KEY', CLIENT_KEY);
-    shelljs.exec(cmd, { silent: true });
+    shelljs.exec(cmd, {
+        silent: true
+    });
     var cmd = "openssl req -subj '/CN=client' -new -key $CLIENT_KEY -out client.csr 2>/dev/null";
     cmd = cmd.replace('$CLIENT_KEY', CLIENT_KEY);
-    shelljs.exec(cmd, { silent: true });
+    shelljs.exec(cmd, {
+        silent: true
+    });
     fs.writeFileSync('extfile.cnf', 'extendedKeyUsage = clientAuth')
     var cmd = 'openssl x509 -passin pass:$PASSPHRASE -req -days 365 -in client.csr -CA $CA_CERT -CAkey $CA_KEY -CAcreateserial -out $CLIENT_CERT -extfile extfile.cnf';
     cmd = cmd.replace('$PASSPHRASE', PASSPHRASE).replace('$CA_CERT', CA_CERT).replace('$CA_KEY', CA_KEY).replace('$CLIENT_CERT', CLIENT_CERT);
-    shelljs.exec(cmd, { silent: true });
+    shelljs.exec(cmd, {
+        silent: true
+    });
 
     console.log('						' + emoji.get('heavy_check_mark').green + ' done.');
     console.log(' ');
@@ -181,8 +215,12 @@ function makeTLS(A) {
     };
     fs.writeFileSync(service, inf.join('\n'));
 
-    shelljs.exec('systemctl daemon-reload', { silent: true });
-    shelljs.exec('service docker restart', { silent: true });
+    shelljs.exec('systemctl daemon-reload', {
+        silent: true
+    });
+    shelljs.exec('service docker restart', {
+        silent: true
+    });
 
     console.log('						' + emoji.get('heavy_check_mark').green + ' done.');
     console.log(' ');
@@ -205,11 +243,11 @@ function makeTLS(A) {
         cluster: A.URL
     };
     request({
-        url: A.URL + 'api/register_hypervisor',
+        url: A.URL + 'api/register_worker',
         form: info,
         method: "post",
         encoding: null
-    }, function(err, resp, body) {
+    }, function (err, resp, body) {
         if (err) return error("Server is unreachable. Check your proxy settings or try again later.");
         //console.log(body.toString('utf-8'));
         var response = JSON.parse(body.toString('utf-8'));
@@ -225,13 +263,15 @@ function makeTLS(A) {
         delete info.ca;
         delete info.cert;
         delete info.key;
-        fs.writeFileSync(cleandir+'/.omneedia', JSON.stringify(info));
+        fs.writeFileSync(cleandir + '/.omneedia', JSON.stringify(info));
         // install service
-        fs.writeFileSync('/etc/systemd/system/multi-user.target.wants/oahypervisor.service', _service.join('\n'));
-        shelljs.exec('systemctl daemon-reload', { silent: false });
-        shelljs.exec('service oahypervisor restart', { silent: false });
-        console.log(' Your server is up and running!'.green);
-        console.log(' ');
+        install_service(function () {
+            shelljs.exec('service oa-worker restart', {
+                silent: false
+            });
+            console.log(' Worker is up and running!'.green);
+            console.log(' ');
+        });
     });
 };
 
@@ -245,7 +285,7 @@ function Answer(A) {
         },
         method: "post",
         encoding: null
-    }, function(err, resp, body) {
+    }, function (err, resp, body) {
         if (err) return error("Server is unreachable. Check your proxy settings or try again later.");
         var response = JSON.parse(body.toString('utf-8'));
         if (response.success) PID = response.pid;
@@ -258,7 +298,7 @@ function Answer(A) {
 
 
 
-figlet('omneedia.setup', function(err, data) {
+figlet('omneedia.setup', function (err, data) {
     console.log(data.cyan);
     console.log(' ');
     console.log('This script will guide you through the process of creating and registering an omneedia host.'.green);
