@@ -238,9 +238,10 @@ function makeTLS(A) {
         cert: cert.split('\n').join('|'),
         key: key.split('\n').join('|'),
         ip: A.IP,
+        exip: fs.readFileSync(__dirname + '/../Worker/.ip', 'utf-8').split('\n')[0],
         host: A.DNS,
         label: A.LABEL,
-        cluster: A.URL
+        manager: A.URL
     };
     request({
         url: A.URL + 'api/register_worker',
@@ -248,10 +249,13 @@ function makeTLS(A) {
         method: "post",
         encoding: null
     }, function (err, resp, body) {
+
         if (err) return error("Server is unreachable. Check your proxy settings or try again later.");
         //console.log(body.toString('utf-8'));
         var response = JSON.parse(body.toString('utf-8'));
         if (response.status == "success") {
+            console.log('docker swarm join --token ' + response.manager.token + ' ' + response.manager.ip + ':2377');
+            shelljs.exec('docker swarm join --token ' + response.manager.token + ' ' + response.manager.ip + ':2377');
             console.log('						' + emoji.get('heavy_check_mark').green + ' done.');
         } else {
             console.log('						' + emoji.get('heavy_exclamation_mark').green + ' Failed.');
@@ -264,35 +268,55 @@ function makeTLS(A) {
         delete info.cert;
         delete info.key;
         fs.writeFileSync(cleandir + '/.omneedia', JSON.stringify(info));
+        return;
         // install service
         install_service(function () {
             shelljs.exec('service oa-worker restart', {
                 silent: false
             });
-            console.log(' Worker is up and running!'.green);
-            console.log(' ');
+            var worker = {
+                "manager": "https://manager.omneedia.com",
+                "port": "9090",
+                "alias": A.DNS,
+                "label": A.LABEL
+            };
+            fs.mkdir(__dirname + '/../Worker/config', function (e) {
+                fs.writeFile(__dirname + '/../Worker/config/worker.json', JSON.stringify(worker, null, 4), function (e) {
+                    console.log(' Worker is up and running!'.green);
+                    console.log(' ');
+                });
+            });
         });
     });
 };
 
 function Answer(A) {
     shasum.update(A.PASSWORD);
+    var pass = shasum.digest('hex');
     request({
         url: A.URL + 'login',
+        headers: {
+            secret: require('shortid').generate()
+        },
         form: {
             l: A.LOGIN,
-            p: shasum.digest('hex')
+            p: pass
         },
         method: "post",
         encoding: null
     }, function (err, resp, body) {
         if (err) return error("Server is unreachable. Check your proxy settings or try again later.");
-        var response = JSON.parse(body.toString('utf-8'));
-        if (response.success) PID = response.pid;
-        else error("Access denied.");
-        console.log('');
-        console.log(emoji.get('heavy_check_mark').green + ' Access granted.');
-        makeTLS(A);
+        try {
+            var response = JSON.parse(body.toString('utf-8'));
+            if (response.success) PID = response.pid;
+            else error("Access denied.");
+            console.log('');
+            console.log(emoji.get('heavy_check_mark').green + ' Access granted.');
+            makeTLS(A);
+        } catch (e) {
+            if (body.toString('utf-8') == "BAD_REQUEST") return error("Bad request.");
+            else return error("Server is unreachable. Check your proxy settings or try again later.");
+        }
     });
 };
 
@@ -303,5 +327,12 @@ figlet('omneedia.setup', function (err, data) {
     console.log(' ');
     console.log('This script will guide you through the process of creating and registering an omneedia host.'.green);
     console.log(' ');
-    inquirer.prompt(questions).then(Answer);
+    fs.readFile(__dirname + '/../.proxy', function (e, r) {
+        if (r) {
+            request = request.defaults({
+                proxy: r.toString('utf-8').split('\n')[0]
+            })
+        };
+        inquirer.prompt(questions).then(Answer);
+    });
 });
