@@ -268,14 +268,14 @@ function makeTLS(A) {
         delete info.cert;
         delete info.key;
         fs.writeFileSync(cleandir + '/.omneedia', JSON.stringify(info));
-        return;
+
         // install service
         install_service(function () {
             shelljs.exec('service oa-worker restart', {
                 silent: false
             });
             var worker = {
-                "manager": "https://manager.omneedia.com",
+                "manager": A.URL,
                 "port": "9090",
                 "alias": A.DNS,
                 "label": A.LABEL
